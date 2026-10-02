@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aifyn",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // React Router: unknown paths fall back to index.html.
+    "not_found_handling": "single-page-application",
+    // /api/* goes to the Worker; everything else is served straight from static assets.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aifyn-db",
+      "database_id": "da0d3ae2-d306-48b9-a3f0-296816172d5d",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true }
+  // Secret (not committed): `npx wrangler secret put ADMIN_PASSWORD`
+}
