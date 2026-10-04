@@ -38,7 +38,7 @@ function seoFiles(siteUrl) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
-    plugins: [react(), seoFiles(env.VITE_SITE_URL || "https://web.aifyn.in")],
+    plugins: [react(), seoFiles(env.VITE_SITE_URL || "https://www.aifyn.in")],
     resolve: { alias: { "@": path.resolve(__dirname, "src") } },
     // The original CRA source keeps JSX in a few .js files.
     esbuild: { loader: "jsx", include: /src\/.*\.jsx?$/, exclude: [] },

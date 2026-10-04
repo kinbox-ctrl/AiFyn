@@ -19,6 +19,10 @@
       "migrations_dir": "migrations"
     }
   ],
+  "routes": [
+    { "pattern": "aifyn.in", "custom_domain": true },
+    { "pattern": "www.aifyn.in", "custom_domain": true }
+  ],
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true }

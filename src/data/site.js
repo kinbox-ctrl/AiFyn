@@ -12,6 +12,10 @@ export const CONTACT = {
   phoneHref: "tel:+919355570800",
   whatsapp: "https://wa.me/919355570800?text=Hi%20AiFyn%20—%20I%27d%20like%20to%20book%20a%20live%20demo.",
   cities: ["Delhi", "Gurugram", "Noida", "Goa", "Yamunanagar"],
+  offices: [
+    { label: "Corporate office", address: "Nukleus Coworking & Managed Offices, Plot No 29, Sector 142, Noida, Uttar Pradesh - 201305" },
+    { label: "Regd. office", address: "#14, Raghunath Puri, Yamunanagar, Haryana - 135001" },
+  ],
 };
 
 export const NAV_LINKS = [

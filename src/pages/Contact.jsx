@@ -59,6 +59,13 @@ export default function Contact() {
                     </span>
                   ))}
                 </p>
+                <div className="mt-5 space-y-3" data-testid="contact-offices">
+                  {CONTACT.offices.map((o) => (
+                    <p key={o.label} className="text-sm leading-relaxed text-ink/70">
+                      <span className="font-semibold text-deep">{o.label}</span> — {o.address}
+                    </p>
+                  ))}
+                </div>
                 <p className="mt-6 border-t border-deep/10 pt-5 text-xs leading-relaxed text-ink/50">
                   AiFyn – Ai For Your Needs. Share your site layout and camera count — we demo on your own footage.
                 </p>
