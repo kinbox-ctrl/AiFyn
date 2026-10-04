@@ -4,7 +4,7 @@ import { Reveal, SectionTag } from "../components/Reveal";
 import GlowCard from "../components/GlowCard";
 import Magnetic from "../components/Magnetic";
 import { BRAND, CONTACT } from "../data/site";
-import { FOUNDERS } from "../data/team";
+import { FOUNDERS, MENTORSHIP } from "../data/team";
 import Icon from "../lib/icons";
 
 export default function About() {
@@ -71,6 +71,22 @@ export default function About() {
                 </Reveal>
               ))}
             </div>
+          </section>
+
+          <section className="mt-24" aria-labelledby="mentorship-heading">
+            <SectionTag>MENTORSHIP</SectionTag>
+            <Reveal><h2 id="mentorship-heading" className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-tight text-deep sm:text-4xl">
+              Guided by decades of experience.
+            </h2></Reveal>
+            <Reveal delay={0.08} className="mt-10">
+              <GlowCard className="glass rounded-3xl p-6 sm:p-8" data-testid="mentorship-card">
+                <p className="text-base font-medium leading-relaxed text-ink/85">{MENTORSHIP[0]}</p>
+                <span className="mt-5 block h-0.5 w-16 rounded-full bg-coral" aria-hidden="true" />
+                <div className="mt-5 space-y-3 text-sm leading-relaxed text-ink/65">
+                  {MENTORSHIP.slice(1).map((para) => <p key={para.slice(0, 24)}>{para}</p>)}
+                </div>
+              </GlowCard>
+            </Reveal>
           </section>
 
           <Reveal className="mt-20">
