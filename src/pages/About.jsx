@@ -10,7 +10,7 @@ import Icon from "../lib/icons";
 export default function About() {
   return (
     <>
-      <Seo title="About" path="/about" description="AiFyn — Ai For Your Needs. Vision, mission and the founders, Raghav Gupta and Rishi Jha, making cameras intelligent." />
+      <Seo title="About" path="/about" description="AiFyn — Ai For Your Needs. Vision, mission and the founders, Raghav Gupta and Nidhi Bhardwaj Jha, making cameras intelligent." />
       <main className="relative overflow-hidden pb-24 pt-36">
         <div className="aurora left-[-6%] top-[0%] h-[420px] w-[420px] animate-drift bg-aqua/20" />
         <div className="mx-auto max-w-7xl px-6">

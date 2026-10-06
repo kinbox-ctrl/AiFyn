@@ -13,18 +13,8 @@ export const FOUNDERS = [
     ],
   },
   {
-    name: "Rishi Jha",
-    role: "Co-Founder, AiFyn",
-    photo: "/team/rishi-jha.jpg",
-    lead: "Across more than 20 years in global consulting, Rishi helped promoters and senior leadership design the policies, controls and operating frameworks behind multi-million-dollar enterprises.",
-    bio: [
-      "But he also saw how quickly those frameworks could weaken once they reached the ground. Across listed entities, real estate groups, family-owned businesses and schools, he witnessed the gap between intended controls and actual practice — and the risks that gap could create.",
-      "Rishi co-founded AiFyn to bring corporate strategy closer to operational reality. At AiFyn, he ensures that leadership metrics are not merely polished dashboards, but evidence-based facts that withstand scrutiny — from the boardroom to the factory floor and the spaces where children learn and people work.",
-    ],
-  },
-  {
     name: "Nidhi Bhardwaj Jha",
-    role: "Chartered Accountant, AiFyn",
+    role: "Co-Founder, AiFyn",
     photo: "/team/nidhi-bhardwaj-jha.jpg",
     lead: "With more than 18 years of professional experience as a Chartered Accountant, Nidhi Bhardwaj Jha has worked across large multinational organisations, bringing deep expertise in audit, taxation, financial controls and the preparation of management reports that support informed decision-making.",
     bio: [
