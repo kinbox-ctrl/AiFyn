@@ -29,6 +29,14 @@ npm run deploy           # build + upload to Cloudflare
 ```
 
 - Admin password (production): `npx wrangler secret put ADMIN_PASSWORD`
+- Lead emails (EmailJS): every demo request sends a thank-you to the customer and a copy of the form
+  to `hello@aifyn.in`. In https://dashboard.emailjs.com connect an Email Service to the hello@aifyn.in
+  mailbox, create two templates (variables: `name`, `first_name`, `company`, `industry`, `cameras`,
+  `phone`, `email`, `city`, `message`, `source_page`, `submitted_at`, `contact_email`) — the thank-you
+  template's "To Email" is `{{email}}`, the lead-copy template's is `{{contact_email}}` — then fill
+  `EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_TEMPLATE_THANKS`, `EMAILJS_TEMPLATE_LEAD` in
+  `wrangler.jsonc` and run `npx wrangler secret put EMAILJS_PRIVATE_KEY` (Account → API keys → Private Key).
+  Locally, put the same keys in `.dev.vars`.
 - New DB migration: add `migrations/000N_*.sql`, then `npm run db:migrate`
 - Custom domain: Cloudflare dashboard → Workers → aifyn → Settings → Domains & Routes,
   then set `VITE_SITE_URL` in `.env` to the new domain and redeploy (updates canonical tags, sitemap, robots).

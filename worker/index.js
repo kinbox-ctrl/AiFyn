@@ -7,6 +7,7 @@ const RATE_LIMIT_PER_HOUR = 5;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 const LIMITS = { name: 120, company: 160, industry: 80, cameras: 40, phone: 32, email: 200, city: 120, message: 2000, sourcePage: 200 };
 const CSV_COLUMNS = ["created_at", "name", "company", "industry", "cameras", "phone", "email", "city", "message", "source_page"];
+const EMAILJS_API = "https://api.emailjs.com/api/v1.0/email/send";
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), {
@@ -50,7 +51,53 @@ async function verifyToken(env, token) {
 
 const clean = (v, max) => String(v ?? "").trim().slice(0, max);
 
-async function createLead(request, env) {
+// Sends one EmailJS template. Returns true on success; failures are logged, never thrown.
+async function sendEmail(env, templateId, params) {
+  const res = await fetch(EMAILJS_API, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      service_id: env.EMAILJS_SERVICE_ID,
+      template_id: templateId,
+      user_id: env.EMAILJS_PUBLIC_KEY,
+      accessToken: env.EMAILJS_PRIVATE_KEY,
+      template_params: params,
+    }),
+  });
+  if (!res.ok) console.error(`EmailJS ${templateId} failed: ${res.status} ${await res.text()}`);
+  return res.ok;
+}
+
+// After a lead is stored: thank the customer, and send a copy of the form to CONTACT_EMAIL.
+// Both templates are configured in the EmailJS dashboard and receive the same variables.
+async function notifyLead(env, lead, createdAt) {
+  const configured = ["EMAILJS_SERVICE_ID", "EMAILJS_PUBLIC_KEY", "EMAILJS_PRIVATE_KEY", "EMAILJS_TEMPLATE_THANKS", "EMAILJS_TEMPLATE_LEAD"]
+    .every((k) => env[k]);
+  if (!configured) {
+    console.warn("EmailJS not configured; skipping lead emails");
+    return;
+  }
+  const params = {
+    name: lead.name,
+    first_name: lead.name.split(" ")[0],
+    company: lead.company,
+    industry: lead.industry,
+    cameras: lead.cameras,
+    phone: lead.phone,
+    email: lead.email,
+    city: lead.city,
+    message: lead.message || "—",
+    source_page: lead.sourcePage || "—",
+    submitted_at: createdAt,
+    contact_email: env.CONTACT_EMAIL,
+  };
+  await Promise.all([
+    sendEmail(env, env.EMAILJS_TEMPLATE_THANKS, params),
+    sendEmail(env, env.EMAILJS_TEMPLATE_LEAD, params),
+  ]);
+}
+
+async function createLead(request, env, ctx) {
   let body;
   try {
     body = await request.json();
@@ -77,13 +124,17 @@ async function createLead(request, env) {
   if (n >= RATE_LIMIT_PER_HOUR) return json({ detail: "Too many submissions. Try again later." }, 429);
 
   const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO leads (id, name, company, industry, cameras, phone, email, city, message, source_page, ip_hash, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(id, lead.name, lead.company, lead.industry, lead.cameras, lead.phone, lead.email, lead.city,
-      lead.message || null, lead.sourcePage || null, ipHash, new Date().toISOString())
+      lead.message || null, lead.sourcePage || null, ipHash, createdAt)
     .run();
+
+  // Emails go out after the response; a mail failure never fails the submission.
+  ctx.waitUntil(notifyLead(env, lead, createdAt));
 
   return json({ ok: true, id }, 201);
 }
@@ -102,12 +153,12 @@ const csvCell = (v) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
-async function handleApi(request, env, path) {
+async function handleApi(request, env, ctx, path) {
   const method = request.method;
 
   if (path === "/api" || path === "/api/") return json({ message: "AiFyn API is live" });
 
-  if (path === "/api/leads" && method === "POST") return createLead(request, env);
+  if (path === "/api/leads" && method === "POST") return createLead(request, env, ctx);
 
   if (path === "/api/admin/login" && method === "POST") {
     if (!env.ADMIN_PASSWORD) return json({ detail: "Admin not configured" }, 503);
@@ -138,11 +189,11 @@ async function handleApi(request, env, path) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       try {
-        return await handleApi(request, env, url.pathname);
+        return await handleApi(request, env, ctx, url.pathname);
       } catch (err) {
         console.error(err);
         return json({ detail: "Internal error" }, 500);

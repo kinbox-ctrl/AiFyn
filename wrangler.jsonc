@@ -23,8 +23,16 @@
     { "pattern": "aifyn.in", "custom_domain": true },
     { "pattern": "www.aifyn.in", "custom_domain": true }
   ],
+  // EmailJS (https://dashboard.emailjs.com): service connected to hello@aifyn.in, plus the two template IDs.
+  // Secrets (not committed): `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put EMAILJS_PRIVATE_KEY`.
+  "vars": {
+    "CONTACT_EMAIL": "hello@aifyn.in",
+    "EMAILJS_SERVICE_ID": "",
+    "EMAILJS_PUBLIC_KEY": "",
+    "EMAILJS_TEMPLATE_THANKS": "",
+    "EMAILJS_TEMPLATE_LEAD": ""
+  },
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true }
-  // Secret (not committed): `npx wrangler secret put ADMIN_PASSWORD`
 }
