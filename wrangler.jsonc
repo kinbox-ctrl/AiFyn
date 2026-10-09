@@ -27,10 +27,10 @@
   // Secrets (not committed): `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put EMAILJS_PRIVATE_KEY`.
   "vars": {
     "CONTACT_EMAIL": "hello@aifyn.in",
-    "EMAILJS_SERVICE_ID": "",
-    "EMAILJS_PUBLIC_KEY": "",
-    "EMAILJS_TEMPLATE_THANKS": "",
-    "EMAILJS_TEMPLATE_LEAD": ""
+    "EMAILJS_SERVICE_ID": "service_fvhqb85",
+    "EMAILJS_PUBLIC_KEY": "8HS0dTVd8MrDboxNg",
+    "EMAILJS_TEMPLATE_THANKS": "template_mli80zb",
+    "EMAILJS_TEMPLATE_LEAD": "template_n8spmd8"
   },
   "workers_dev": true,
   "preview_urls": false,
