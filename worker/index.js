@@ -55,23 +55,27 @@ const clean = (v, max) => String(v ?? "").trim().slice(0, max);
 async function sendEmail(env, templateId, params) {
   const res = await fetch(EMAILJS_API, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    // Origin identifies the request as coming from the site, like the browser SDK would;
+    // the private key (if set) additionally authenticates it as a server-side call.
+    headers: { "content-type": "application/json", origin: env.SITE_ORIGIN || "https://www.aifyn.in" },
     body: JSON.stringify({
       service_id: env.EMAILJS_SERVICE_ID,
       template_id: templateId,
       user_id: env.EMAILJS_PUBLIC_KEY,
-      accessToken: env.EMAILJS_PRIVATE_KEY,
+      ...(env.EMAILJS_PRIVATE_KEY ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
       template_params: params,
     }),
   });
-  if (!res.ok) console.error(`EmailJS ${templateId} failed: ${res.status} ${await res.text()}`);
+  const text = await res.text();
+  if (!res.ok) console.error(`EmailJS ${templateId} failed: ${res.status} ${text}`);
+  else console.log(`EmailJS ${templateId} sent to ${params.email === params.contact_email ? "contact" : "customer"}`);
   return res.ok;
 }
 
 // After a lead is stored: thank the customer, and send a copy of the form to CONTACT_EMAIL.
 // Both templates are configured in the EmailJS dashboard and receive the same variables.
 async function notifyLead(env, lead, createdAt) {
-  const configured = ["EMAILJS_SERVICE_ID", "EMAILJS_PUBLIC_KEY", "EMAILJS_PRIVATE_KEY", "EMAILJS_TEMPLATE_THANKS", "EMAILJS_TEMPLATE_LEAD"]
+  const configured = ["EMAILJS_SERVICE_ID", "EMAILJS_PUBLIC_KEY", "EMAILJS_TEMPLATE_THANKS", "EMAILJS_TEMPLATE_LEAD"]
     .every((k) => env[k]);
   if (!configured) {
     console.warn("EmailJS not configured; skipping lead emails");
