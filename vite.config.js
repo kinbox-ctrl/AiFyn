@@ -37,8 +37,11 @@ function seoFiles(siteUrl) {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const siteUrl = (env.VITE_SITE_URL || "https://www.aifyn.in").replace(/\/$/, "");
+  // Also feeds the %VITE_SITE_URL% placeholders in index.html when no .env is present (e.g. CI).
+  process.env.VITE_SITE_URL = siteUrl;
   return {
-    plugins: [react(), seoFiles(env.VITE_SITE_URL || "https://www.aifyn.in")],
+    plugins: [react(), seoFiles(siteUrl)],
     resolve: { alias: { "@": path.resolve(__dirname, "src") } },
     // The original CRA source keeps JSX in a few .js files.
     esbuild: { loader: "jsx", include: /src\/.*\.jsx?$/, exclude: [] },

@@ -32,6 +32,8 @@
     "EMAILJS_TEMPLATE_THANKS": "template_mli80zb",
     "EMAILJS_TEMPLATE_LEAD": "template_n8spmd8"
   },
+  // Keep variables/secrets added in the Cloudflare dashboard (e.g. EMAILJS_PRIVATE_KEY) across deploys.
+  "keep_vars": true,
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true }
