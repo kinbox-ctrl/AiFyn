@@ -54,23 +54,31 @@ const clean = (v, max) => String(v ?? "").trim().slice(0, max);
 
 // Sends one EmailJS template. Returns true on success; failures are logged, never thrown.
 async function sendEmail(env, templateId, params) {
-  const res = await fetch(EMAILJS_API, {
-    method: "POST",
-    // Origin identifies the request as coming from the site, like the browser SDK would;
-    // the private key (if set) additionally authenticates it as a server-side call.
-    headers: { "content-type": "application/json", origin: env.SITE_ORIGIN || "https://www.aifyn.in" },
-    body: JSON.stringify({
-      service_id: env.EMAILJS_SERVICE_ID,
-      template_id: templateId,
-      user_id: env.EMAILJS_PUBLIC_KEY,
-      ...(env.EMAILJS_PRIVATE_KEY ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
-      template_params: params,
-    }),
-  });
-  const text = await res.text();
-  if (!res.ok) console.error(`EmailJS ${templateId} failed: ${res.status} ${text}`);
+  const post = async (withKey) => {
+    const res = await fetch(EMAILJS_API, {
+      method: "POST",
+      // Origin identifies the request as coming from the site, like the browser SDK would;
+      // the private key (if set) additionally authenticates it as a server-side call.
+      headers: { "content-type": "application/json", origin: env.SITE_ORIGIN || "https://www.aifyn.in" },
+      body: JSON.stringify({
+        service_id: env.EMAILJS_SERVICE_ID,
+        template_id: templateId,
+        user_id: env.EMAILJS_PUBLIC_KEY,
+        ...(withKey ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
+        template_params: params,
+      }),
+    });
+    return { ok: res.ok, status: res.status, text: await res.text() };
+  };
+  let r = await post(Boolean(env.EMAILJS_PRIVATE_KEY));
+  if (!r.ok && env.EMAILJS_PRIVATE_KEY) {
+    // A wrong private key makes EmailJS reject the call; the browser-style request still works.
+    console.warn(`EmailJS ${templateId} with private key failed: ${r.status} ${r.text} — retrying without it`);
+    r = await post(false);
+  }
+  if (!r.ok) console.error(`EmailJS ${templateId} failed: ${r.status} ${r.text}`);
   else console.log(`EmailJS ${templateId} sent to ${params.email === params.contact_email ? "contact" : "customer"}`);
-  return res.ok;
+  return r.ok;
 }
 
 // After a lead is stored: thank the customer, and send a copy of the form to CONTACT_EMAIL.
