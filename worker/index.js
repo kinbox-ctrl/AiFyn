@@ -193,13 +193,19 @@ async function createLead(request, env, ctx) {
 
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT INTO leads (id, name, company, industry, cameras, phone, email, city, message, source_page, ip_hash, created_at, session)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(id, lead.name, lead.company, lead.industry, lead.cameras, lead.phone, lead.email, lead.city,
-      lead.message || null, lead.sourcePage || null, ipHash, createdAt, session)
-    .run();
+  const cols = ["id", "name", "company", "industry", "cameras", "phone", "email", "city", "message", "source_page", "ip_hash", "created_at"];
+  const vals = [id, lead.name, lead.company, lead.industry, lead.cameras, lead.phone, lead.email, lead.city,
+    lead.message || null, lead.sourcePage || null, ipHash, createdAt];
+  const insert = (c, v) =>
+    env.DB.prepare(`INSERT INTO leads (${c.join(", ")}) VALUES (${c.map(() => "?").join(", ")})`).bind(...v).run();
+  try {
+    await insert([...cols, "session"], [...vals, session]);
+  } catch (err) {
+    // Migration 0002 not applied yet: never lose a lead over the optional session link.
+    if (!/no (such )?column(: | named )session/i.test(String(err?.message || err))) throw err;
+    console.warn("leads.session column missing — run `npm run db:migrate`");
+    await insert(cols, vals);
+  }
 
   // Emails go out after the response; a mail failure never fails the submission.
   ctx.waitUntil(notifyLead(env, lead, createdAt));
@@ -227,7 +233,13 @@ async function handleApi(request, env, ctx, path) {
   if (path === "/api" || path === "/api/") return json({ message: "AiFyn API is live" });
 
   if (path === "/api/leads" && method === "POST") return createLead(request, env, ctx);
-  if (path === "/api/t" && method === "POST") return trackPageview(request, env);
+  if (path === "/api/t" && method === "POST") {
+    // Analytics must never surface errors: with migration 0002 pending the beacon is simply dropped.
+    return trackPageview(request, env).catch((err) => {
+      console.warn(`pageview dropped: ${err?.message || err}`);
+      return new Response(null, { status: 204 });
+    });
+  }
 
   if (path === "/api/admin/login" && method === "POST") {
     if (!env.ADMIN_PASSWORD) return json({ detail: "Admin not configured" }, 503);
