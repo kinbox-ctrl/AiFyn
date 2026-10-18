@@ -6,6 +6,7 @@ const PHONE_RE = /^\+?[0-9][0-9\s\-()]{7,16}$/;
 const RATE_LIMIT_PER_HOUR = 5;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 const LIMITS = { name: 120, company: 160, industry: 80, cameras: 40, phone: 32, email: 200, city: 120, message: 2000, sourcePage: 200 };
+const BOT_RE = /bot|crawl|spider|slurp|preview|headless|lighthouse|pingdom|facebookexternalhit|curl|wget|python-requests/i;
 const CSV_COLUMNS = ["created_at", "name", "company", "industry", "cameras", "phone", "email", "city", "message", "source_page"];
 const EMAILJS_API = "https://api.emailjs.com/api/v1.0/email/send";
 
@@ -101,6 +102,68 @@ async function notifyLead(env, lead, createdAt) {
   ]);
 }
 
+// --- Traffic beacon (src/lib/analytics.js) -------------------------------------------------------
+// One row per page view. Visitor id = salted hash of IP + user agent that changes daily, so nothing
+// is stored in the browser. Bots and the admin area are ignored. Read by the AiFyn dashboard Worker.
+
+function parseUserAgent(ua) {
+  const device = /iPad|Tablet|PlayBook|Silk/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua)) ? "Tablet"
+    : /Mobi|iPhone|iPod|Android/i.test(ua) ? "Mobile" : "Desktop";
+  const browser = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /SamsungBrowser/.test(ua) ? "Samsung Internet"
+    : /Firefox|FxiOS/.test(ua) ? "Firefox" : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : "Other";
+  const os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad|iPod/.test(ua) ? "iOS"
+    : /Mac OS X|Macintosh/.test(ua) ? "macOS" : /CrOS/.test(ua) ? "ChromeOS" : /Linux/.test(ua) ? "Linux" : "Other";
+  return { device, browser, os };
+}
+
+// External referrer host only; same-site navigation is not a referral.
+function referrerHost(ref, selfHost) {
+  try {
+    const h = new URL(ref).hostname.replace(/^www\./, "");
+    return h && h !== selfHost.replace(/^www\./, "") ? h : null;
+  } catch {
+    return null;
+  }
+}
+
+async function trackPageview(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(null, { status: 400 });
+  }
+  const ua = request.headers.get("user-agent") || "";
+  const id = clean(body.id, 64);
+  const session = clean(body.session, 64);
+  if (!id || !session || BOT_RE.test(ua)) return new Response(null, { status: 204 });
+
+  if (body.duration_ms !== undefined) {
+    const ms = Math.min(Math.max(Number(body.duration_ms) || 0, 0), 4 * 60 * 60 * 1000);
+    await env.DB.prepare("UPDATE pageviews SET duration_ms = ? WHERE id = ? AND session = ?").bind(ms, id, session).run();
+    return new Response(null, { status: 204 });
+  }
+
+  const path = clean(body.path, 200);
+  if (!path.startsWith("/") || path.startsWith("/admin")) return new Response(null, { status: 204 });
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const day = new Date().toISOString().slice(0, 10);
+  const visitor = (await sha256Hex(`${ip}|${ua}|${day}|${env.ADMIN_PASSWORD || "aifyn"}`)).slice(0, 32);
+  const { device, browser, os } = parseUserAgent(ua);
+  const cf = request.cf || {};
+  const selfHost = new URL(request.url).hostname;
+
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO pageviews (id, ts, visitor, session, path, referrer, utm_source, utm_medium, utm_campaign, country, city, device, browser, os)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, new Date().toISOString(), visitor, session, path, referrerHost(clean(body.referrer, 500), selfHost),
+      clean(body.utm_source, 100) || null, clean(body.utm_medium, 100) || null, clean(body.utm_campaign, 150) || null,
+      cf.country || null, cf.city || null, device, browser, os)
+    .run();
+  return new Response(null, { status: 204 });
+}
+
 async function createLead(request, env, ctx) {
   let body;
   try {
@@ -113,6 +176,7 @@ async function createLead(request, env, ctx) {
   if (clean(body.website, 200)) return json({ ok: true, id: crypto.randomUUID() }, 201);
 
   const lead = Object.fromEntries(Object.entries(LIMITS).map(([k, max]) => [k, clean(body[k], max)]));
+  const session = clean(body.session, 64) || null; // links the query to its visit (pageviews.session)
   const errors = {};
   for (const k of ["name", "company", "industry", "cameras", "city"]) if (!lead[k]) errors[k] = "required";
   if (!PHONE_RE.test(lead.phone)) errors.phone = "invalid";
@@ -130,11 +194,11 @@ async function createLead(request, env, ctx) {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   await env.DB.prepare(
-    `INSERT INTO leads (id, name, company, industry, cameras, phone, email, city, message, source_page, ip_hash, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO leads (id, name, company, industry, cameras, phone, email, city, message, source_page, ip_hash, created_at, session)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(id, lead.name, lead.company, lead.industry, lead.cameras, lead.phone, lead.email, lead.city,
-      lead.message || null, lead.sourcePage || null, ipHash, createdAt)
+      lead.message || null, lead.sourcePage || null, ipHash, createdAt, session)
     .run();
 
   // Emails go out after the response; a mail failure never fails the submission.
@@ -163,6 +227,7 @@ async function handleApi(request, env, ctx, path) {
   if (path === "/api" || path === "/api/") return json({ message: "AiFyn API is live" });
 
   if (path === "/api/leads" && method === "POST") return createLead(request, env, ctx);
+  if (path === "/api/t" && method === "POST") return trackPageview(request, env);
 
   if (path === "/api/admin/login" && method === "POST") {
     if (!env.ADMIN_PASSWORD) return json({ detail: "Admin not configured" }, 503);

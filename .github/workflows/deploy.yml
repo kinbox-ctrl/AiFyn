@@ -22,7 +22,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: cloudflare/wrangler-action@v3
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 7643492cc224f3df90740d2c4fc409ba
+          command: d1 migrations apply aifyn-db --remote
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 7643492cc224f3df90740d2c4fc409ba

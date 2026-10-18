@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useLenis, scrollToTop } from "@/lib/useLenis";
+import { initAnalytics, trackPageview } from "@/lib/analytics";
 import Cursor from "@/components/Cursor";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -26,6 +27,18 @@ function ScrollToTop() {
   return null;
 }
 
+// One page-view beacon per route change (see src/lib/analytics.js).
+function Analytics() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+  useEffect(() => {
+    trackPageview(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function SiteLayout() {
   return (
     <>
@@ -46,6 +59,7 @@ function App() {
       <ErrorBoundary>
         <BrowserRouter>
           <ScrollToTop />
+          <Analytics />
           <Cursor />
           <Routes>
             <Route element={<SiteLayout />}>

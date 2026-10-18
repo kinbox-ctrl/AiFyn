@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { submitLead } from "../lib/api";
+import { sessionId } from "../lib/analytics";
 import { INDUSTRY_OPTIONS, CAMERA_OPTIONS } from "../data/site";
 import Icon from "../lib/icons";
 
@@ -56,7 +57,7 @@ export default function DemoForm({ sourcePage }) {
     if (Object.keys(e).length) return;
     setState("sending");
     try {
-      await submitLead({ ...data, sourcePage: sourcePage || window.location.pathname });
+      await submitLead({ ...data, sourcePage: sourcePage || window.location.pathname, session: sessionId() });
       setState("done");
     } catch (err) {
       setState(err?.response?.status === 429 ? "rate" : "fail");
