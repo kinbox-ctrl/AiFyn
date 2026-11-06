@@ -72,6 +72,7 @@ export function trackPageview(path) {
     id: current.id,
     session: sessionId(),
     path,
+    automated: Boolean(navigator.webdriver), // headless / automated browsers (crawlers, monitors)
     referrer: document.referrer || null,
     utm_source: q.get("utm_source"),
     utm_medium: q.get("utm_medium"),

@@ -7,6 +7,9 @@ const RATE_LIMIT_PER_HOUR = 5;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 const LIMITS = { name: 120, company: 160, industry: 80, cameras: 40, phone: 32, email: 200, city: 120, message: 2000, sourcePage: 200 };
 const BOT_RE = /bot|crawl|spider|slurp|preview|headless|lighthouse|pingdom|facebookexternalhit|curl|wget|python-requests/i;
+// Networks that are hosting / cloud providers rather than consumer ISPs. Crawlers and monitors that run a
+// real browser (and so pass the user-agent check) almost always come from these.
+const DATACENTER_RE = /amazon|aws|google|microsoft|azure|digitalocean|ovh|hetzner|linode|akamai|oracle|alibaba|tencent|huawei cloud|cloudflare|vultr|choopa|leaseweb|contabo|scaleway|fastly|m247|datacamp|servers?\b|hosting|colo|data ?cent|cloud/i;
 const CSV_COLUMNS = ["created_at", "name", "company", "industry", "cameras", "phone", "email", "city", "message", "source_page"];
 const EMAILJS_API = "https://api.emailjs.com/api/v1.0/email/send";
 
@@ -154,20 +157,25 @@ async function trackPageview(request, env) {
 
   const path = clean(body.path, 200);
   if (!path.startsWith("/") || path.startsWith("/admin")) return new Response(null, { status: 204 });
+  const cf = request.cf || {};
+  const network = clean(cf.asOrganization, 120) || null;
+  // Automated browsers (body.automated = navigator.webdriver), verified bots and hosting networks are not visitors.
+  if (body.automated || cf.verifiedBotCategory || cf.botManagement?.verifiedBot || (network && DATACENTER_RE.test(network))) {
+    return new Response(null, { status: 204 });
+  }
   const ip = request.headers.get("cf-connecting-ip") || "unknown";
   const day = new Date().toISOString().slice(0, 10);
   const visitor = (await sha256Hex(`${ip}|${ua}|${day}|${env.ADMIN_PASSWORD || "aifyn"}`)).slice(0, 32);
   const { device, browser, os } = parseUserAgent(ua);
-  const cf = request.cf || {};
   const selfHost = new URL(request.url).hostname;
 
   await env.DB.prepare(
-    `INSERT OR IGNORE INTO pageviews (id, ts, visitor, session, path, referrer, utm_source, utm_medium, utm_campaign, country, city, device, browser, os)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR IGNORE INTO pageviews (id, ts, visitor, session, path, referrer, utm_source, utm_medium, utm_campaign, country, region, city, network, device, browser, os)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(id, new Date().toISOString(), visitor, session, path, referrerHost(clean(body.referrer, 500), selfHost),
       clean(body.utm_source, 100) || null, clean(body.utm_medium, 100) || null, clean(body.utm_campaign, 150) || null,
-      cf.country || null, cf.city || null, device, browser, os)
+      cf.country || null, cf.region || null, cf.city || null, network, device, browser, os)
     .run();
   return new Response(null, { status: 204 });
 }
