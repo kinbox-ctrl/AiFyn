@@ -42,12 +42,6 @@ export const DIFFERENTIATORS = [
   { icon: "Zap", title: "Fast deployment", body: "From site survey to live alerts in days, not quarters." },
 ];
 
-// PLACEHOLDER client logos — replace with real marks in /src/data/site.js
-export const CLIENT_LOGOS = [
-  "NORTHSTAR GROUP", "VELOCITY LOGISTICS", "MEDIRA LABS", "OAKRIDGE SCHOOLS",
-  "CIVIC MALL", "PRIME FOODS", "APEX AUTOMOTIVE", "HARBOUR HOTELS",
-];
-
 export const SOCIALS = [
   { label: "LinkedIn", href: "#", icon: "Linkedin" },
   { label: "X", href: "#", icon: "Twitter" },

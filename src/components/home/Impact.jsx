@@ -1,7 +1,6 @@
 import { Reveal, SectionTag } from "../Reveal";
 import Counter from "../Counter";
 import GlowCard from "../GlowCard";
-import LogoMarquee from "../LogoMarquee";
 import { DIFFERENTIATORS, STATS } from "../../data/site";
 import Icon from "../../lib/icons";
 
@@ -50,11 +49,6 @@ export default function Impact() {
               </GlowCard>
             </Reveal>
           ))}
-        </div>
-
-        <div className="mt-20">
-          <p className="mono-tag mb-6 text-center">TRUSTED BY TEAMS AT · PLACEHOLDER LOGOS</p>
-          <LogoMarquee />
         </div>
       </div>
     </section>
