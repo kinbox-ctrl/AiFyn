@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { submitLead } from "../lib/api";
-import { sessionId } from "../lib/analytics";
+import { sessionId, trackLead } from "../lib/analytics";
 import { INDUSTRY_OPTIONS, CAMERA_OPTIONS } from "../data/site";
 import Icon from "../lib/icons";
 
@@ -58,6 +58,7 @@ export default function DemoForm({ sourcePage }) {
     setState("sending");
     try {
       await submitLead({ ...data, sourcePage: sourcePage || window.location.pathname, session: sessionId() });
+      trackLead(data.industry);
       setState("done");
     } catch (err) {
       setState(err?.response?.status === 429 ? "rate" : "fail");

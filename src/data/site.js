@@ -6,6 +6,10 @@ export const BRAND = {
   url: (import.meta.env.VITE_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "")).replace(/\/$/, ""),
 };
 
+// Google Analytics 4 measurement ID (Admin → Data streams → web stream). Leave empty to disable GA;
+// the site's own traffic tracking (dashboard.aifyn.in) works regardless.
+export const GA_MEASUREMENT_ID = "";
+
 export const CONTACT = {
   email: "hello@aifyn.in",
   phone: "+91-9355570800",
