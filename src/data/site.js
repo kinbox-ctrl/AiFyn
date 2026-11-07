@@ -8,7 +8,7 @@ export const BRAND = {
 
 // Google Analytics 4 measurement ID (Admin → Data streams → web stream). Leave empty to disable GA;
 // the site's own traffic tracking (dashboard.aifyn.in) works regardless.
-export const GA_MEASUREMENT_ID = "";
+export const GA_MEASUREMENT_ID = "G-YE4SYFLWP0";
 
 export const CONTACT = {
   email: "hello@aifyn.in",
